@@ -1,6 +1,5 @@
 # Unity
 .DS_Store
-*.meta
 *.unityproj
 *.suo
 *.sln
