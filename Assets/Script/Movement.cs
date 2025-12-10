@@ -1,8 +1,11 @@
+using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 public class Movement : MonoBehaviour
 {
+    // Event invoked when the player performs a jump
+    public Action OnJump;
     [Header("Movement")]
     public float moveSpeed = 5f;
     public float jumpForce = 5f;
@@ -76,6 +79,9 @@ public class Movement : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+
+            // Notify listeners that a jump happened
+            try { OnJump?.Invoke(); } catch { }
         }
     }
 
