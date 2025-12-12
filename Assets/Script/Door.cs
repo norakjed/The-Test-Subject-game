@@ -41,7 +41,6 @@ public class DoorController : MonoBehaviour
     {
         isOpen = !isOpen;
         targetRotation = isOpen ? openRotation : closedRotation;
-        Debug.Log($"Door toggled! isOpen = {isOpen}");
     }
 
     public void OpenDoor()

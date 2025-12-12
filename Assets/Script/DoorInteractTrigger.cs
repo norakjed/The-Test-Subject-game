@@ -9,8 +9,7 @@ public class DoorInteractTrigger : MonoBehaviour
     void Start()
     {
         door = GetComponentInParent<DoorController>();
-        if (door == null)
-            Debug.LogWarning("DoorInteractTrigger: No DoorController found in parents.", this);
+        
     }
 
     void OnTriggerEnter(Collider other)

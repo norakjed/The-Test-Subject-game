@@ -43,7 +43,7 @@ public class PlayerInteraction : MonoBehaviour
 
         if (playerCamera == null)
         {
-            Debug.LogError("Player camera is null! Make sure there is a Camera in the scene with the tag 'MainCamera' or assign the 'playerCamera' field on PlayerInteraction.");
+            
         }
 
         if (interactionPrompt != null)
@@ -59,16 +59,16 @@ public class PlayerInteraction : MonoBehaviour
         // Press E to interact
         if (Input.GetKeyDown(KeyCode.E))
         {
-            Debug.Log("E key pressed!");
+            
             
             if (currentDoor != null)
             {
-                Debug.Log("Door found! Toggling door.");
+                
                 currentDoor.ToggleDoor();
             }
             else
             {
-                Debug.Log("No door detected. Make sure you're looking at the door.");
+                
             }
         }
     }
@@ -96,7 +96,7 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (playerCamera == null)
         {
-            Debug.LogError("Player camera is null! Make sure Camera.main is set.");
+            
             return;
         }
         
@@ -127,12 +127,11 @@ public class PlayerInteraction : MonoBehaviour
                 // Ignore hits that belong to the player (this transform or its children)
                 if (h.collider != null && h.collider.transform.IsChildOf(transform))
                 {
-                    Debug.Log($"Ignored hit on player: {hitName} at distance {h.distance}");
+                    
                     continue;
                 }
 
-                Debug.Log($"Interaction ray hit: {hitName} at distance {h.distance} on layer {LayerMask.LayerToName(h.collider.gameObject.layer)}");
-
+                
                 // Try to find DoorController on the collider, then parents, then children
                 DoorController door = null;
                 if (h.collider != null)
@@ -149,22 +148,14 @@ public class PlayerInteraction : MonoBehaviour
                             door = current.GetComponent<DoorController>();
                             current = current.parent;
                         }
-                        if (door != null)
-                            Debug.Log($"Found DoorController on ancestor of {hitName}: {door.gameObject.name}");
-                    }
-                    
+                        }
+
                     // Finally check children
                     if (door == null)
                     {
                         door = h.collider.GetComponentInChildren<DoorController>();
-                        if (door != null)
-                            Debug.Log($"Found DoorController on child of {hitName}: {door.gameObject.name}");
                     }
-                    
-                    if (door == null)
-                    {
-                        Debug.Log($"No DoorController found on {hitName}, its parents, or children");
-                    }
+
                 }
 
                 if (door != null)
@@ -181,17 +172,17 @@ public class PlayerInteraction : MonoBehaviour
                 else
                 {
                     // Hit something non-door; continue to next hit (in case door is behind it)
-                    Debug.Log($"Hit {hitName} but no DoorController found; continuing to next hit.");
+                    
                     continue;
                 }
             }
             
             // Raycast hit something but found no doors - fall through to proximity check
-            Debug.Log("[Raycast] Hit objects but no DoorController found, falling through to proximity...");
+            
         }
         else
         {
-            Debug.Log("[Raycast] No hits found, trying proximity fallback...");
+            
         }
         
         // Proximity fallback: if raycast didn't find a door, check for nearest door within view
@@ -205,7 +196,7 @@ public class PlayerInteraction : MonoBehaviour
                 {
                     interactionPrompt.SetActive(true);
                 }
-                Debug.Log($"[Proximity] Found door: {nearestDoor.gameObject.name}");
+                
                 return;
             }
         }
@@ -224,7 +215,6 @@ public class PlayerInteraction : MonoBehaviour
         if (playerCamera == null) return null;
         
         DoorController[] allDoors = FindObjectsOfType<DoorController>();
-        Debug.Log($"[Proximity] Scanning {allDoors.Length} doors");
         
         DoorController nearest = null;
         float bestScore = float.MaxValue;
@@ -260,12 +250,11 @@ public class PlayerInteraction : MonoBehaviour
             float angle = Vector3.Angle(rayDir, toDir);
             float dotProduct = Vector3.Dot(rayDir, toDir);
 
-            Debug.Log($"[Proximity] Door '{door.gameObject.name}': closestPoint={closestPoint}, dist={dist:F2}, angle={angle:F1}°, dot={dotProduct:F2}");
+            
 
             // Reject by distance first
             if (dist > interactionDistance)
             {
-                Debug.Log($"  -> Too far");
                 continue;
             }
 
@@ -275,7 +264,6 @@ public class PlayerInteraction : MonoBehaviour
 
             if (!withinAngle && !veryClose)
             {
-                Debug.Log($"  -> Outside view angle and not very close");
                 continue;
             }
             
@@ -286,17 +274,7 @@ public class PlayerInteraction : MonoBehaviour
             {
                 bestScore = score;
                 nearest = door;
-                Debug.Log($"  -> New best door! (score={score:F2})");
             }
-        }
-        
-        if (nearest == null)
-        {
-            Debug.Log("[Proximity] No door found within range and angle");
-        }
-        else
-        {
-            Debug.Log($"[Proximity] Selected: {nearest.gameObject.name}");
         }
         
         return nearest;
