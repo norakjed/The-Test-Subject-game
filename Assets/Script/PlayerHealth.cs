@@ -234,6 +234,44 @@ public class PlayerHealth : MonoBehaviour
         Debug.Log($"Player healed {amount}. Health: {currentHealth}/{maxHealth}");
     }
 
+    // Apply an impulse to the spawned ragdoll rigidbodies (if present).
+    // If the ragdoll hasn't been spawned yet, this will wait briefly until it exists.
+    public void ApplyRagdollImpulse(Vector3 impulse, float waitForRagdollMax = 1.0f)
+    {
+        if (activeRagdollInstance != null)
+        {
+            var rbs = activeRagdollInstance.GetComponentsInChildren<Rigidbody>();
+            foreach (var rb in rbs)
+            {
+                try { rb.AddForce(impulse, ForceMode.VelocityChange); } catch { }
+            }
+            return;
+        }
+
+        // If ragdoll will be spawned shortly (Die was just called), wait a few frames and then apply
+        StartCoroutine(WaitForRagdollThenImpulse(impulse, waitForRagdollMax));
+    }
+
+    System.Collections.IEnumerator WaitForRagdollThenImpulse(Vector3 impulse, float maxWait)
+    {
+        float waited = 0f;
+        float step = 0.05f;
+        while (waited < maxWait && activeRagdollInstance == null)
+        {
+            waited += step;
+            yield return new WaitForSeconds(step);
+        }
+
+        if (activeRagdollInstance != null)
+        {
+            var rbs = activeRagdollInstance.GetComponentsInChildren<Rigidbody>();
+            foreach (var rb in rbs)
+            {
+                try { rb.AddForce(impulse, ForceMode.VelocityChange); } catch { }
+            }
+        }
+    }
+
     // Remove or set tags on ragdoll instance and its children so it won't be mistaken for the Player
     void ClearRagdollTags(GameObject ragdoll)
     {
