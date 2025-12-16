@@ -19,6 +19,11 @@ public class Movement : MonoBehaviour
     public float mouseSensitivity = 2f;
     public Transform playerBody;
     public Transform cameraTransform;
+    [Header("Input")]
+    [Tooltip("If true, vertical movement (W/S) is inverted: W moves backward, S moves forward.")]
+    public bool invertVertical = false;
+    [Tooltip("If true, horizontal movement (A/D) is inverted: A moves right, D moves left.")]
+    public bool invertHorizontal = false;
 
     private Rigidbody rb;
     private float xRotation = 0f;
@@ -102,10 +107,13 @@ public class Movement : MonoBehaviour
         float moveX = 0f;
         float moveZ = 0f;
 
-        if (Input.GetKey(KeyCode.W)) moveZ += 1f;
-        if (Input.GetKey(KeyCode.S)) moveZ -= 1f;
-        if (Input.GetKey(KeyCode.D)) moveX += 1f;
-        if (Input.GetKey(KeyCode.A)) moveX -= 1f;
+        // Vertical keys respect optional inversion
+        if (Input.GetKey(KeyCode.W)) moveZ += invertVertical ? -1f : 1f;
+        if (Input.GetKey(KeyCode.S)) moveZ -= invertVertical ? -1f : 1f;
+
+        // Horizontal keys respect optional horizontal inversion
+        if (Input.GetKey(KeyCode.D)) moveX += invertHorizontal ? -1f : 1f;
+        if (Input.GetKey(KeyCode.A)) moveX -= invertHorizontal ? -1f : 1f;
 
         // Move relative to the camera's horizontal forward/right (prevents inverted movement when body/camera differ)
         Vector3 forwardDir;
@@ -138,5 +146,21 @@ public class Movement : MonoBehaviour
         move *= moveSpeed * Time.fixedDeltaTime;
 
         rb.MovePosition(rb.position + move);
+    }
+
+    /// <summary>
+    /// Set whether vertical movement is inverted. Other scripts can call this to toggle inversion.
+    /// </summary>
+    public void SetInvertVertical(bool invert)
+    {
+        invertVertical = invert;
+    }
+
+    /// <summary>
+    /// Set whether horizontal movement is inverted.
+    /// </summary>
+    public void SetInvertHorizontal(bool invert)
+    {
+        invertHorizontal = invert;
     }
 }
