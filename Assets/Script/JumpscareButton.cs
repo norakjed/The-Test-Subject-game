@@ -27,6 +27,15 @@ public class JumpscareButton : MonoBehaviour
     [Header("Optional Audio")]
     public AudioClip jumpscareSound;
     public float soundVolume = 1f;
+    [Header("Button Press")]
+    [Tooltip("Local distance to move the button down when pressed.")]
+    public float pressDepth = 0.08f;
+    [Tooltip("Seconds the press animation takes to move down (and same to move back up).")]
+    public float pressTime = 0.06f;
+
+    [Header("Third Person")]
+    [Tooltip("If true, temporarily disable common third-person components/cameras during the jumpscare so the third-person view is not shown.")]
+    public bool suppressThirdPersonDuringJumpscare = true;
 
     Camera mainCam;
 
@@ -51,9 +60,41 @@ public class JumpscareButton : MonoBehaviour
         {
             if (Input.GetKeyDown(interactKey))
             {
-                StartCoroutine(ShowJumpscareRoutine(playerObj));
+                StartCoroutine(PressThenJumpscareRoutine(playerObj));
             }
         }
+    }
+
+    IEnumerator PressThenJumpscareRoutine(GameObject playerObj)
+    {
+        // Animate local press (move down then back up)
+        Vector3 start = transform.localPosition;
+        Vector3 down = start + Vector3.down * pressDepth;
+
+        float t = 0f;
+        while (t < pressTime)
+        {
+            t += Time.deltaTime;
+            transform.localPosition = Vector3.Lerp(start, down, t / pressTime);
+            yield return null;
+        }
+        transform.localPosition = down;
+
+        // small wait so the press feel is visible before jumpscare
+        yield return new WaitForSeconds(0.06f);
+
+        // Run jumpscare
+        yield return StartCoroutine(ShowJumpscareRoutine(playerObj));
+
+        // Move back up
+        t = 0f;
+        while (t < pressTime)
+        {
+            t += Time.deltaTime;
+            transform.localPosition = Vector3.Lerp(down, start, t / pressTime);
+            yield return null;
+        }
+        transform.localPosition = start;
     }
 
     IEnumerator ShowJumpscareRoutine(GameObject playerObj)
@@ -83,6 +124,96 @@ public class JumpscareButton : MonoBehaviour
             movement = playerObj.GetComponent<Movement>();
             if (movement != null)
                 movement.enabled = false;
+        }
+
+        // Optionally suppress third-person cameras / controllers while jumpscare is visible
+        var disabledBehaviours = new System.Collections.Generic.List<Behaviour>();
+        var disabledCameras = new System.Collections.Generic.List<Camera>();
+        // Temp camera handles — declared here so they're in scope for cleanup later
+        Camera tempCamera = null;
+        bool createdTempCamera = false;
+        if (suppressThirdPersonDuringJumpscare && playerObj != null)
+        {
+            // Disable any MonoBehaviours on the player whose type name contains "ThirdPerson"
+            var monos = playerObj.GetComponentsInChildren<MonoBehaviour>(true);
+            foreach (var m in monos)
+            {
+                if (m == null) continue;
+                var name = m.GetType().Name;
+                if (name.IndexOf("ThirdPerson", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    name.IndexOf("ThirdPersonController", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    var b = m as Behaviour;
+                    if (b != null && b.enabled)
+                    {
+                        b.enabled = false;
+                        disabledBehaviours.Add(b);
+                    }
+                }
+            }
+
+            // Also disable any Cameras that are children of the player (common for third-person setups)
+            var cams = playerObj.GetComponentsInChildren<Camera>(true);
+            foreach (var c in cams)
+            {
+                if (c != null && c.enabled)
+                {
+                    c.enabled = false;
+                    disabledCameras.Add(c);
+                }
+            }
+                // Additionally disable any other enabled Cameras in the scene to ensure no third-person view renders
+                var sceneCams = GameObject.FindObjectsOfType<Camera>();
+                foreach (var sc in sceneCams)
+                {
+                    if (sc == null) continue;
+                    // Skip cameras we already disabled (they'll be in disabledCameras)
+                    if (disabledCameras.Contains(sc)) continue;
+                    if (sc.enabled)
+                    {
+                        sc.enabled = false;
+                        disabledCameras.Add(sc);
+                    }
+                }
+
+                // Try to disable CinemachineBrain-like components by name (if Cinemachine is present)
+                var allMonos = GameObject.FindObjectsOfType<MonoBehaviour>(true);
+                foreach (var m in allMonos)
+                {
+                    if (m == null) continue;
+                    var n = m.GetType().Name;
+                    if (n.IndexOf("CinemachineBrain", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        var b = m as Behaviour;
+                        if (b != null && b.enabled)
+                        {
+                            b.enabled = false;
+                            disabledBehaviours.Add(b);
+                        }
+                    }
+                }
+
+                // If disabling cameras removed all enabled Cameras, create a temporary camera so Unity doesn't show "No cameras rendering".
+                bool anyEnabled = false;
+                var checkCams = GameObject.FindObjectsOfType<Camera>();
+                foreach (var cc in checkCams)
+                {
+                    if (cc != null && cc.enabled)
+                    {
+                        anyEnabled = true;
+                        break;
+                    }
+                }
+                if (!anyEnabled)
+                {
+                    var go = new GameObject("JumpscareTempCamera");
+                    tempCamera = go.AddComponent<Camera>();
+                    tempCamera.cullingMask = 0; // render nothing
+                    tempCamera.clearFlags = CameraClearFlags.SolidColor;
+                    tempCamera.backgroundColor = Color.black;
+                    tempCamera.depth = 10000;
+                    createdTempCamera = true;
+                }
         }
 
         // Play sound
@@ -158,6 +289,24 @@ public class JumpscareButton : MonoBehaviour
             var phCheck = playerObj != null ? playerObj.GetComponent<PlayerHealth>() : null;
             if (phCheck == null || !phCheck.isDead)
                 movement.enabled = true;
+        }
+
+        // Re-enable any third-person behaviours/cameras we disabled (if the player is still alive)
+        var phCheck2 = playerObj != null ? playerObj.GetComponent<PlayerHealth>() : null;
+        if ((phCheck2 == null || !phCheck2.isDead) && disabledBehaviours.Count > 0)
+        {
+            foreach (var b in disabledBehaviours)
+                if (b != null) b.enabled = true;
+        }
+        if ((phCheck2 == null || !phCheck2.isDead) && disabledCameras.Count > 0)
+        {
+            foreach (var c in disabledCameras)
+                if (c != null) c.enabled = true;
+        }
+        // Remove the temporary camera if we created one
+        if (createdTempCamera && tempCamera != null)
+        {
+            GameObject.Destroy(tempCamera.gameObject);
         }
     }
 }

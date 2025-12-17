@@ -15,6 +15,8 @@ public class PlatformMoveOnJump : MonoBehaviour
     [Header("Player Detection")]
     public Movement playerMovement; // optional - will auto-find by tag 'Player' if empty
     public bool requirePlayerOnPlatform = true; // only move if player currently stands on this platform
+    [Tooltip("Maximum distance (world units) from the platform at which a player jump will trigger the platform.")]
+    public float triggerDistance = 3f;
 
     Collider platformCollider;
     bool isMoving = false;
@@ -65,6 +67,16 @@ public class PlatformMoveOnJump : MonoBehaviour
         if (requirePlayerOnPlatform)
         {
             if (!IsPlayerOnPlatform())
+                return;
+        }
+
+        // Require player to be within triggerDistance of the platform (measured to collider)
+        if (playerMovement != null && triggerDistance > 0f)
+        {
+            Vector3 playerPos = playerMovement.transform.position;
+            Vector3 closest = platformCollider != null ? platformCollider.ClosestPoint(playerPos) : transform.position;
+            float dist = Vector3.Distance(playerPos, closest);
+            if (dist > triggerDistance)
                 return;
         }
 
