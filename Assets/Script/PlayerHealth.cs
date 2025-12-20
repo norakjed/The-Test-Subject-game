@@ -23,6 +23,34 @@ public class PlayerHealth : MonoBehaviour
             respawnPosition = transform.position;
         }
 
+        // If a checkpoint was saved to PlayerPrefs (fallback), apply it now so player starts at checkpoint
+        if (PlayerPrefs.HasKey("Checkpoint_PosX"))
+        {
+            float x = PlayerPrefs.GetFloat("Checkpoint_PosX", transform.position.x);
+            float y = PlayerPrefs.GetFloat("Checkpoint_PosY", transform.position.y);
+            float z = PlayerPrefs.GetFloat("Checkpoint_PosZ", transform.position.z);
+            Vector3 saved = new Vector3(x, y, z);
+            respawnPosition = saved;
+            useRespawnPosition = true;
+            try
+            {
+                transform.position = saved;
+                Debug.Log($"PlayerHealth: applied saved checkpoint pos {saved} on Start", this);
+            }
+            catch { }
+        }
+
+        // If another system (CheckpointManager) set a respawn position before Start,
+        // respect it by moving the player to that position when requested.
+        if (useRespawnPosition)
+        {
+            try
+            {
+                transform.position = respawnPosition;
+            }
+            catch { }
+        }
+
         // Cache components for ragdoll handling
         mainRigidbody = GetComponent<Rigidbody>();
         movementComp = GetComponent<Movement>();
@@ -81,6 +109,8 @@ public class PlayerHealth : MonoBehaviour
         Debug.Log("Player died!");
         isDead = true;
         OnDeath?.Invoke();
+        // Record death in the in-memory tracker. DeathCounter listens to the tracker.
+        try { DeathTracker.RecordDeath(); } catch { }
 
         // Disable player controls
         if (movementComp != null)

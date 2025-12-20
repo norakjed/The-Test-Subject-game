@@ -63,6 +63,20 @@ public class PlatformMoveOnJump : MonoBehaviour
         if (isMoving) return;
         if (triggerOnce && hasTriggered) return;
 
+        // Ensure we have a valid player reference. If missing, try to find one.
+        if (playerMovement == null)
+        {
+            var playerObj = GameObject.FindWithTag("Player");
+            if (playerObj != null) playerMovement = playerObj.GetComponent<Movement>();
+        }
+
+        // If still missing, ignore the event to avoid unintended triggers.
+        if (playerMovement == null)
+        {
+            Debug.LogWarning("PlatformMoveOnJump: OnPlayerJump invoked but no playerMovement assigned; ignoring.", this);
+            return;
+        }
+
         // If required, ensure player's position is on top of this platform
         if (requirePlayerOnPlatform)
         {
@@ -71,12 +85,42 @@ public class PlatformMoveOnJump : MonoBehaviour
         }
 
         // Require player to be within triggerDistance of the platform (measured to collider)
-        if (playerMovement != null && triggerDistance > 0f)
+        if (triggerDistance > 0f)
         {
+            // Prefer the player's ground-check position (feet) if available, otherwise use the transform
             Vector3 playerPos = playerMovement.transform.position;
+            var groundCheckField = typeof(Movement).GetField("groundCheck");
+            if (groundCheckField != null)
+            {
+                try
+                {
+                    var gc = groundCheckField.GetValue(playerMovement) as Transform;
+                    if (gc != null) playerPos = gc.position;
+                }
+                catch { }
+            }
+
             Vector3 closest = platformCollider != null ? platformCollider.ClosestPoint(playerPos) : transform.position;
-            float dist = Vector3.Distance(playerPos, closest);
-            if (dist > triggerDistance)
+
+            // Use horizontal (XZ) distance for triggering so vertical offsets don't falsely pass
+            float horizDist = Vector2.Distance(new Vector2(playerPos.x, playerPos.z), new Vector2(closest.x, closest.z));
+            float fullDist = Vector3.Distance(playerPos, closest);
+
+            // If ClosestPoint returned the player's position (distance 0), that means the player
+            // position is inside the collider. In that case ensure the player's feet are near the
+            // top surface; otherwise ignore the trigger (prevents distant/embedded positions passing).
+            if (fullDist <= 0f && platformCollider != null)
+            {
+                float topY = platformCollider.bounds.max.y;
+                float feetDelta = Mathf.Abs(playerPos.y - topY);
+                Debug.Log($"PlatformMoveOnJump: ClosestPoint==playerPos; feetDelta={feetDelta:F2}", this);
+                // if feet aren't within ~0.6 units of the top, treat as not nearby
+                if (feetDelta > 0.6f)
+                    return;
+            }
+
+            Debug.Log($"PlatformMoveOnJump: Player horizDist={horizDist:F2}, fullDist={fullDist:F2}, triggerDistance={triggerDistance:F2}", this);
+            if (horizDist > triggerDistance)
                 return;
         }
 

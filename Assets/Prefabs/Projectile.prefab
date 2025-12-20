@@ -95,8 +95,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 20
-  damage: 10
-  lifeTime: 5
+  damage: 100
+  lifeTime: 1
   explosionPrefab: {fileID: 1662554176395120076, guid: 7e3e8081f048c2e4da55be9358033d62, type: 3}
   knockbackForce: 5
   oneHitRagdoll: 1
