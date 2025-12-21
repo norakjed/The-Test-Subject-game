@@ -10,6 +10,11 @@ public class CheckpointManager : MonoBehaviour
     [Tooltip("If true, the CheckpointManager will persist across scenes.")]
     public bool persistAcrossScenes = true;
 
+    [Tooltip("If true, the CheckpointManager will prefer a scene-default checkpoint (e.g. 'Checkpoint0') on scene load and ignore saved PlayerPrefs.)")]
+    public bool alwaysUseSceneDefaultOnLoad = true;
+    [Tooltip("Optional: explicitly assign which Checkpoint should be used as the scene default start (e.g., Checkpoint0). If assigned, this will be applied on scene load.")]
+    public Checkpoint defaultStartCheckpoint;
+
     Checkpoint activeCheckpoint;
 
     void Awake()
@@ -41,6 +46,49 @@ public class CheckpointManager : MonoBehaviour
 
         var ph = player.GetComponent<PlayerHealth>();
         if (ph == null) return;
+
+        // If developer explicitly assigned a default start checkpoint in the inspector, apply it first.
+        if (defaultStartCheckpoint != null)
+        {
+            activeCheckpoint = defaultStartCheckpoint;
+            Vector3 p = activeCheckpoint.transform.position;
+            Debug.Log($"CheckpointManager: applying explicit defaultStartCheckpoint pos {p}", this);
+            ph.respawnPosition = p;
+            ph.useRespawnPosition = true;
+            player.transform.position = ph.respawnPosition;
+            return;
+        }
+
+        // Otherwise, if configured, prefer a scene-default checkpoint (e.g. a GameObject named containing "checkpoint0").
+        if (alwaysUseSceneDefaultOnLoad)
+        {
+            var cps = FindObjectsOfType<Checkpoint>();
+            if (cps != null && cps.Length > 0)
+            {
+                Checkpoint defaultCp = null;
+                foreach (var c in cps)
+                {
+                    var n = c.gameObject.name.ToLower();
+                    if (n.Contains("checkpoint0") || n.Contains("checkpoint 0") || n.EndsWith("0"))
+                    {
+                        defaultCp = c;
+                        break;
+                    }
+                }
+                if (defaultCp == null) defaultCp = cps[0];
+                if (defaultCp != null)
+                {
+                    activeCheckpoint = defaultCp;
+                    Vector3 p = activeCheckpoint.transform.position;
+                    Debug.Log($"CheckpointManager: applying scene-default checkpoint pos {p}", this);
+                    ph.respawnPosition = p;
+                    ph.useRespawnPosition = true;
+                    // Also move the player immediately to the checkpoint position after scene load
+                    player.transform.position = ph.respawnPosition;
+                    return;
+                }
+            }
+        }
 
         if (activeCheckpoint != null)
         {
