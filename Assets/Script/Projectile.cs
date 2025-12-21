@@ -18,6 +18,9 @@ public class Projectile : MonoBehaviour
     [Tooltip("Small spawn offset along firing direction to avoid immediate collisions at origin")]
     public float spawnOffset = 0.25f;
 
+    [Tooltip("Sound to play when hitting the player")]
+    public AudioClip hitSound;
+
     void Start()
     {
         Rigidbody rb = GetComponent<Rigidbody>();
@@ -42,6 +45,12 @@ public class Projectile : MonoBehaviour
         // If we hit the player, apply damage and handle knockback/ragdoll properly
         if (collision.gameObject.CompareTag("Player"))
         {
+            // Play hit sound
+            if (hitSound != null)
+            {
+                AudioSource.PlayClipAtPoint(hitSound, transform.position);
+            }
+
             var player = collision.gameObject;
             Rigidbody playerRb = player.GetComponent<Rigidbody>();
             Vector3 knockDir = (player.transform.position - transform.position).normalized;

@@ -7,6 +7,16 @@ public class PitDeathTrigger : MonoBehaviour
     [Tooltip("Player tag to look for. Default 'Player'.")]
     public string playerTag = "Player";
 
+    [Tooltip("Audio clip to play on death.")]
+    public AudioClip failAudioClip;
+
+    private static bool failAudioPlayed = false;
+
+    void Start()
+    {
+        // No persistence, resets on game restart
+    }
+
     void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag(playerTag))
@@ -17,6 +27,20 @@ public class PitDeathTrigger : MonoBehaviour
         {
             Debug.Log("PitDeathTrigger: Player entered pit trigger — forcing fall death.");
             ph.Die(true);
+
+            // Play fail audio only once per session
+            if (failAudioClip != null && !failAudioPlayed)
+            {
+                AudioSource playerAudio = other.GetComponent<AudioSource>();
+                if (playerAudio == null)
+                {
+                    playerAudio = other.gameObject.AddComponent<AudioSource>();
+                }
+                playerAudio.spatialBlend = 0f; // 2D audio
+                playerAudio.clip = failAudioClip;
+                playerAudio.Play();
+                failAudioPlayed = true;
+            }
 
             // Prevent ragdoll from getting stuck in the trigger by temporarily ignoring collisions
             Collider myCol = GetComponent<Collider>();
