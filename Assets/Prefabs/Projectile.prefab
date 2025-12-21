@@ -98,6 +98,7 @@ MonoBehaviour:
   damage: 100
   lifeTime: 1
   explosionPrefab: {fileID: 1662554176395120076, guid: 7e3e8081f048c2e4da55be9358033d62, type: 3}
-  knockbackForce: 5
+  knockbackForce: 10
   oneHitRagdoll: 1
   spawnOffset: 0.25
+  hitSound: {fileID: 8300000, guid: 0409f6ba3c31adb4e9bbc6fff70617a9, type: 3}

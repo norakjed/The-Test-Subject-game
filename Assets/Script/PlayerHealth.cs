@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -24,7 +25,16 @@ public class PlayerHealth : MonoBehaviour
         }
 
         // If a checkpoint was saved to PlayerPrefs (fallback), apply it now so player starts at checkpoint
-        if (PlayerPrefs.HasKey("Checkpoint_PosX"))
+        // Unless a CheckpointManager wants to prefer the scene-default checkpoint on load.
+        bool skipApplySaved = false;
+        try
+        {
+            if (CheckpointManager.Instance != null && (CheckpointManager.Instance.alwaysUseSceneDefaultOnLoad || CheckpointManager.Instance.defaultStartCheckpoint != null))
+                skipApplySaved = true;
+        }
+        catch { }
+
+        if (!skipApplySaved && PlayerPrefs.HasKey("Checkpoint_PosX"))
         {
             float x = PlayerPrefs.GetFloat("Checkpoint_PosX", transform.position.x);
             float y = PlayerPrefs.GetFloat("Checkpoint_PosY", transform.position.y);
@@ -38,6 +48,10 @@ public class PlayerHealth : MonoBehaviour
                 Debug.Log($"PlayerHealth: applied saved checkpoint pos {saved} on Start", this);
             }
             catch { }
+        }
+        else if (skipApplySaved)
+        {
+            Debug.Log("PlayerHealth: skipping applying saved checkpoint because CheckpointManager prefers scene default on load.", this);
         }
 
         // If another system (CheckpointManager) set a respawn position before Start,

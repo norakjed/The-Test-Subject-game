@@ -37,6 +37,8 @@ public class JumpscareButton : MonoBehaviour
     [Tooltip("If true, temporarily disable common third-person components/cameras during the jumpscare so the third-person view is not shown.")]
     public bool suppressThirdPersonDuringJumpscare = true;
 
+    public static int pressCount = 0;
+
     Camera mainCam;
 
     void Start()
@@ -67,6 +69,7 @@ public class JumpscareButton : MonoBehaviour
 
     IEnumerator PressThenJumpscareRoutine(GameObject playerObj)
     {
+        pressCount++;
         // Animate local press (move down then back up)
         Vector3 start = transform.localPosition;
         Vector3 down = start + Vector3.down * pressDepth;
