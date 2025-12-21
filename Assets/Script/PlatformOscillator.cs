@@ -31,12 +31,18 @@ public class PlatformOscillator : MonoBehaviour
     [Tooltip("Player tag used to detect the player for parenting. Only used when Carry Player is true.")]
     public string playerTag = "Player";
 
+    [Tooltip("If true, the platform will move its Rigidbody using MovePosition in FixedUpdate for smoother physics interactions. If the GameObject has no Rigidbody, a kinematic one will be added when enabled.")]
+    public bool useRigidbodyMovement = true;
+
     Vector3 leftPoint;
     Vector3 rightPoint;
     Vector3 startPos;
     Vector3 moveDir;
     bool isMoving = false;
     bool hasTriggeredOnce = false;
+    // target position driven by coroutine, applied in FixedUpdate (via Rigidbody or transform)
+    Vector3 targetPosition;
+    Rigidbody rb;
 
     void Start()
     {
@@ -57,6 +63,26 @@ public class PlatformOscillator : MonoBehaviour
         {
             // Move immediately to right endpoint
             transform.position = rightPoint;
+            targetPosition = rightPoint;
+        }
+
+        // Setup Rigidbody for physics-friendly movement if requested
+        if (useRigidbodyMovement)
+        {
+            rb = GetComponent<Rigidbody>();
+            if (rb == null)
+            {
+                // Add a kinematic Rigidbody so MovePosition works predictably
+                rb = gameObject.AddComponent<Rigidbody>();
+                rb.isKinematic = true;
+                rb.interpolation = RigidbodyInterpolation.Interpolate;
+            }
+            else
+            {
+                rb.isKinematic = true;
+                rb.interpolation = RigidbodyInterpolation.Interpolate;
+            }
+            targetPosition = transform.position;
         }
 
         // Start movement
@@ -89,17 +115,18 @@ public class PlatformOscillator : MonoBehaviour
             float duration = travelDist / Mathf.Max(0.0001f, speed);
             float elapsed = 0f;
 
-            while (elapsed < duration)
+                while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
                 // smoothstep easing
                 float ease = t * t * (3f - 2f * t);
-                transform.position = Vector3.Lerp(from, to, ease);
+                // update targetPosition; actual transform/Rigidbody movement happens in FixedUpdate for smooth physics
+                targetPosition = Vector3.Lerp(from, to, ease);
                 yield return null;
             }
 
-            transform.position = to;
+            targetPosition = to;
 
             if (pauseAtEnds)
             {
@@ -120,6 +147,20 @@ public class PlatformOscillator : MonoBehaviour
         }
     }
 
+    void FixedUpdate()
+    {
+        if (useRigidbodyMovement && rb != null)
+        {
+            // Move the rigidbody to the target position computed by the coroutine.
+            rb.MovePosition(targetPosition);
+        }
+        else
+        {
+            // Fallback: directly set transform (non-physics platforms)
+            transform.position = targetPosition;
+        }
+    }
+
     void OnCollisionEnter(Collision collision)
     {
         if (!carryPlayer) return;
@@ -127,10 +168,12 @@ public class PlatformOscillator : MonoBehaviour
         {
             // Parent the player's root transform to the platform so they move with it
             Transform playerRoot = collision.gameObject.transform;
-            // If the player object is nested, find top-most parent with Movement or PlayerHealth
-            var ph = playerRoot.GetComponentInChildren<MonoBehaviour>();
-            // simply parent the collision root (works for typical setups)
-            playerRoot.SetParent(transform, true);
+            // If the player object is nested, prefer the top-most root with the Player tag
+            Transform root = playerRoot;
+            while (root.parent != null && root.parent.gameObject.CompareTag(playerTag))
+                root = root.parent;
+            // Parent the player's root to platform. Use worldPositionStays=true so player doesn't snap.
+            root.SetParent(transform, true);
         }
     }
 
@@ -141,7 +184,12 @@ public class PlatformOscillator : MonoBehaviour
         {
             // Unparent
             Transform playerRoot = collision.gameObject.transform;
-            playerRoot.SetParent(null, true);
+            Transform root = playerRoot;
+            while (root.parent != null && root.parent.gameObject.CompareTag(playerTag))
+                root = root.parent;
+            // Only unparent if currently parented to this platform
+            if (root.parent == transform)
+                root.SetParent(null, true);
         }
     }
 

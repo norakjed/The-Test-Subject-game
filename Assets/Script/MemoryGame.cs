@@ -76,7 +76,7 @@ public class MemoryGame : MonoBehaviour
         // While glowing: set all tiles to trigger=true
         for (int i = 0; i < tiles.Length; i++)
         {
-            if (tiles[i] != null) tiles[i].SetTrigger(true);
+            if (tiles[i] != null) tiles[i].SetTrigger(false);
         }
 
         // Play sequence: after each tile's glow ends, make that tile solid (trigger=false)
@@ -93,7 +93,7 @@ public class MemoryGame : MonoBehaviour
             // after glow stops for this tile, make it solid (trigger=false)
             if (idx >= 0 && idx < tiles.Length && tiles[idx] != null)
             {
-                tiles[idx].SetTrigger(false);
+                tiles[idx].SetTrigger(true);
             }
 
             // wait the between-glow delay before next

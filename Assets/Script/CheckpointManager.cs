@@ -46,7 +46,6 @@ public class CheckpointManager : MonoBehaviour
 
         var ph = player.GetComponent<PlayerHealth>();
         if (ph == null) return;
-
         // If developer explicitly assigned a default start checkpoint in the inspector, apply it first.
         if (defaultStartCheckpoint != null)
         {
@@ -59,7 +58,32 @@ public class CheckpointManager : MonoBehaviour
             return;
         }
 
-        // Otherwise, if configured, prefer a scene-default checkpoint (e.g. a GameObject named containing "checkpoint0").
+        // Prefer any in-memory active checkpoint (e.g. when this manager persists across scenes).
+        if (activeCheckpoint != null)
+        {
+            Vector3 p = activeCheckpoint.transform.position;
+            Debug.Log($"CheckpointManager: applying active checkpoint pos {p}", this);
+            ph.respawnPosition = p;
+            ph.useRespawnPosition = true;
+            player.transform.position = ph.respawnPosition;
+            return;
+        }
+
+        // Next, prefer any saved checkpoint position in PlayerPrefs (fallback persisted by checkpoints).
+        if (PlayerPrefs.HasKey("Checkpoint_PosX"))
+        {
+            float x = PlayerPrefs.GetFloat("Checkpoint_PosX", player.transform.position.x);
+            float y = PlayerPrefs.GetFloat("Checkpoint_PosY", player.transform.position.y);
+            float z = PlayerPrefs.GetFloat("Checkpoint_PosZ", player.transform.position.z);
+            Vector3 saved = new Vector3(x, y, z);
+            Debug.Log($"CheckpointManager: applying saved checkpoint pos {saved}", this);
+            ph.respawnPosition = saved;
+            ph.useRespawnPosition = true;
+            player.transform.position = saved;
+            return;
+        }
+
+        // Finally, if configured, prefer a scene-default checkpoint (e.g. a GameObject named containing "checkpoint0").
         if (alwaysUseSceneDefaultOnLoad)
         {
             var cps = FindObjectsOfType<Checkpoint>();
@@ -88,30 +112,6 @@ public class CheckpointManager : MonoBehaviour
                     return;
                 }
             }
-        }
-
-        if (activeCheckpoint != null)
-        {
-            Vector3 p = activeCheckpoint.transform.position;
-            Debug.Log($"CheckpointManager: applying active checkpoint pos {p}", this);
-            ph.respawnPosition = p;
-            ph.useRespawnPosition = true;
-            // Also move the player immediately to the checkpoint position after scene load
-            player.transform.position = ph.respawnPosition;
-            return;
-        }
-
-        // Fallback: check PlayerPrefs for a saved checkpoint position
-        if (PlayerPrefs.HasKey("Checkpoint_PosX"))
-        {
-            float x = PlayerPrefs.GetFloat("Checkpoint_PosX", player.transform.position.x);
-            float y = PlayerPrefs.GetFloat("Checkpoint_PosY", player.transform.position.y);
-            float z = PlayerPrefs.GetFloat("Checkpoint_PosZ", player.transform.position.z);
-            Vector3 saved = new Vector3(x, y, z);
-            Debug.Log($"CheckpointManager: applying saved checkpoint pos {saved}", this);
-            ph.respawnPosition = saved;
-            ph.useRespawnPosition = true;
-            player.transform.position = saved;
         }
     }
 
