@@ -64926,7 +64926,9 @@ MonoBehaviour:
   triggerOnce: 1
   playerMovement: {fileID: 783076534}
   requirePlayerOnPlatform: 0
-  triggerDistance: 1
+  ignoreIfPlayerOnPlatform: 1
+  triggerDistance: 4.93
+  maxVerticalProximity: 1
 --- !u!43 &306149895
 Mesh:
   m_ObjectHideFlags: 0

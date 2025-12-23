@@ -104,6 +104,9 @@ public class GameFinish : MonoBehaviour
     public void BackToMainMenu()
     {
         Time.timeScale = 1f;
+        // Ensure persistent/session state is cleared so starting from Main Menu
+        // behaves like a full restart (same as PlayAgain).
+        ResetSessionState();
         SceneManager.LoadScene("Main Menu");
     }
 }
