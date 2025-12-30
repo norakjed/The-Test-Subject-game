@@ -144,7 +144,7 @@ Meet the talented individuals behind The Test Subject:
 |:---:|:---:|:---:|
 | **Chhorn Norakjed** | **Kuy Poly** | **Hak Kimly** |
 | Project Lead | Scripter | World Builder |
-| [@norakjed](https://github.com/norakjed) | Game Logic & Systems | Level Design & Environment |
+| [@norakjed](https://github.com/norakjed) | [@KuyPoly](https://github.com/KuyPoly) | [@Kim-ly25](https://github.com/Kim-ly25) |
 
 </div>
 
